@@ -6,57 +6,43 @@ import numpy;
 import matplotlib.animation as animation;
 
 
+class Planet:
+
+    def __init__(self, radius, orbit_radius, angular_step, color, initial_angular):
+        self.radius = radius;
+        self.orbit_radius = orbit_radius;
+        self.angular_step = angular_step;
+        self.color = color;
+        self.angular = initial_angular;
+
+    def step(self):
+        self.angular += self.angular_step;
+        if self.angular >= 360:
+            self.angular %= 360;
+
+
 class SolarSystem:
 
     def __init__(self):
         self.au = 100;
-        self.alpha = None;
-        self.earth = pyplot.Circle((0, 0), 3, color = "#101080");
-        self.sun = pyplot.Circle((0, 0), 5, color = "#808010");
+        self.sun = Planet(7, 0, 0, "#808010", 0);
+        self.mercury = Planet(2, 30, 40, "#505000", 0);
+        self.venus = Planet(4, 70, 12, "#505000", 0);
+        self.earth = Planet(4, 100, 10, "#101080", 0);
+        self.mars = Planet(3, 120, 6, "#801010", 0);
+        self.jupiter = Planet(5, 150, 1, "#505050", 0);
 
-    @staticmethod
-    def transform0(sun_position, earth_position):
-        return;
+    def step(self):
+        for attr in self.__dict__:
+            planet = self.__dict__[attr];
+            if type(planet) == Planet:
+                planet.step();
 
-    @staticmethod
-    def transform1(sun_position, earth_position):
-        sun_position[0] = -earth_position[0];
-        sun_position[1] = -earth_position[1];
-        earth_position[0] = 0;
-        earth_position[1] = 0;
 
-    @staticmethod
-    def transform2(sun_position, earth_position):
-        sun_position[0] = -earth_position[0] / 2.;
-        sun_position[1] = -earth_position[1] / 2.;
-        earth_position[0] /= 2.;
-        earth_position[1] /= 2.;
+class Projection:
 
-    def draw(self, transform_func = None):
-        angular = self.alpha * numpy.pi / 180.;
-        x = self.au * numpy.cos(angular);
-        y = self.au * numpy.sin(angular);
-        sun_position = [0, 0];
-        earth_position = [x, y];
-        if transform_func:
-            transform_func(sun_position, earth_position);
-        self.sun.set_center((sun_position[0], sun_position[1]));
-        self.earth.set_center((earth_position[0], earth_position[1]));
+    def __init__(self):
 
-    def add_to_axes(self, axes):
-        axes.add_artist(self.sun);
-        axes.add_artist(self.earth);
-
-    def shift(self, delta_degrees, transform_func = None):
-        if self.alpha is None:
-            self.alpha = 0;
-        else:
-            self.alpha += delta_degrees;
-        self.alpha %= 360;
-        self.draw(transform_func);
-
-    def get_artists(self):
-        return [self.sun, self.earth];
 
 
 def shift_solar_system(value, ss, transform_func):
