@@ -81,6 +81,7 @@ solar = SolarSystem();
 pyplot.style.use("dark_background");
 ax = pyplot.axes(label="123");
 pyplot.axis([-200, 199, -150, 149]);
+pyplot.axis("equal");
 pyplot.axis(False);
 pyplot.grid(True);
 
