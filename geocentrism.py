@@ -26,11 +26,11 @@ class SolarSystem:
     def __init__(self):
         self.au = 100;
         self.sun = Planet(7, 0, 0, "#808010", 0);
-        self.mercury = Planet(2, 30, 40, "#505000", 0);
-        self.venus = Planet(4, 70, 12, "#AF3410", 0);
-        self.earth = Planet(4, 100, 10, "#101080", 0);
-        self.mars = Planet(3, 120, 6, "#801010", 0);
-        self.jupiter = Planet(5, 140, 1, "#505050", 0);
+        self.mercury = Planet(2, 20, 40, "#505000", 0);
+        self.venus = Planet(4, 40, 12, "#AF3410", 0);
+        self.earth = Planet(4, 60, 10, "#101080", 0);
+        self.mars = Planet(3, 80, 6, "#801010", 0);
+        self.jupiter = Planet(5, 100, 1, "#505050", 0);
 
     def foreach(self, f, *args, **kwargs):
         for attr in self.__dict__:
@@ -62,8 +62,8 @@ class Projection:
 
     # noinspection PyMethodMayBeStatic
     def calculate_xy(self, planet):
-        x = planet.orbit_radius * numpy.cos(planet.angular * numpy.pi / 180.);
-        y = planet.orbit_radius * numpy.sin(planet.angular * numpy.pi / 180.);
+        x = 110 + planet.orbit_radius * numpy.cos(planet.angular * numpy.pi / 180.);
+        y = 110 + planet.orbit_radius * numpy.sin(planet.angular * numpy.pi / 180.);
         return x, y;
 
     def draw(self):
@@ -80,10 +80,10 @@ solar = SolarSystem();
 
 pyplot.style.use("dark_background");
 ax = pyplot.axes(label="123");
-pyplot.axis([-200, 199, -150, 149]);
-pyplot.axis("equal");
+pyplot.axis([0, 480, 0, 480]);
+pyplot.gca().set_aspect("equal", adjustable="box");
 pyplot.axis(False);
-pyplot.grid(True);
+# pyplot.grid(True);
 
 projection1 = Projection(ax, solar);
 
