@@ -27,7 +27,7 @@ class SolarSystem:
         self.au = 100;
         self.sun = Planet(7, 0, 0, "#808010", 0);
         self.mercury = Planet(2, 30, 40, "#505000", 0);
-        self.venus = Planet(4, 70, 12, "#EC5427", 0);
+        self.venus = Planet(4, 70, 12, "#AF3410", 0);
         self.earth = Planet(4, 100, 10, "#101080", 0);
         self.mars = Planet(3, 120, 6, "#801010", 0);
         self.jupiter = Planet(5, 140, 1, "#505050", 0);
