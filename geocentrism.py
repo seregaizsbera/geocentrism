@@ -1,88 +1,232 @@
 #! /usr/bin/env python
+from datetime import datetime
 
-import matplotlib;
+import matplotlib
 import matplotlib.pyplot as pyplot;
 import numpy;
 import matplotlib.animation as animation;
+
+# выводить анимацию в файл или в окно
+output_to_gif = True;
+# сколько кадров в итоговой анимации
+number_of_steps = 360;
+
+
+class Planet:
+
+    def __init__(self, name, radius, orbit_radius, angular_step, color, initial_angular, trace):
+        self.name = name;
+        self.radius = radius;
+        self.orbit_radius = orbit_radius;
+        self.angular_step = angular_step;
+        self.color = color;
+        self.angular = initial_angular;
+        self.trace = trace;
+
+    def step(self):
+        self.angular += self.angular_step;
+        if self.angular >= 360:
+            self.angular %= 360;
 
 
 class SolarSystem:
 
     def __init__(self):
+        self.planets = {};
         self.au = 100;
-        self.alpha = None;
-        self.earth = pyplot.Circle((0, 0), 3, color = "#101080");
-        self.sun = pyplot.Circle((0, 0), 5, color = "#808010");
+        global number_of_steps;
+        # Скорость всех планет рассчитывается от скорости Юпитера
+        # Юпитер самый медленный. Он должен за один цикл анимации сделать 1 оборот.
+        # Остальные планеты движутся со скоростями пропорционально указанным коэффициентам.
+        jupiter_step = 360 / number_of_steps;
+        traces = False;
+        self.add_planet(Planet("sun", 7, 0, jupiter_step * 0, "#909020", 0, traces and False));
+        self.add_planet(Planet("mercury", 3, 24, jupiter_step * 24, "#404000", 0, traces));
+        # self.add_planet(Planet("venus", 4, 48, jupiter_step * 12, "#A0A0A0", 0, traces and False));
+        self.add_planet(Planet("earth", 4, 72, jupiter_step * 10, "#101080", 0, traces and False));
+        # self.add_planet(Planet("mars", 3, 96, jupiter_step * 6, "#801010", 0, traces));
+        # self.add_planet(Planet("jupiter", 5, 120, jupiter_step, "#505050", 0, traces));
+        self.has_traces = False;
+        for planet in self.planets:
+            if self.planets[planet].trace:
+                self.has_traces = True;
+                break;
+
+    def add_planet(self, planet):
+        self.planets[planet.name] = planet;
+
+    def foreach(self, f, *args, **kwargs):
+        for p, planet in self.planets.items():
+            f(planet, *args, **kwargs);
+
+    def step(self):
+        self.foreach(Planet.step);
+
+
+class Projection:
+    """
+    Вид модели в системе отсчета, связанной с Солнцем
+    """
+
+    def __init__(self, axes, ss, window_shift):
+        self.figures = [];
+        self.ss = ss;
+        self.window_shift = window_shift;
+        self.axes = axes;
+        ss.foreach(Projection.init_planet, self, axes);
+
+    # noinspection PyMethodMayBeStatic
+    def calculate_shift_vec(self):
+        return [0, 0];
 
     @staticmethod
-    def transform0(sun_position, earth_position):
-        return;
+    def init_planet(planet, *args, **kwargs):
+        a = list(args);
+        projection = a.pop(0);
+        args2 = tuple(a)
+        projection.init_planet_internal(planet, *args2, **kwargs);
 
-    @staticmethod
-    def transform1(sun_position, earth_position):
-        sun_position[0] = -earth_position[0];
-        sun_position[1] = -earth_position[1];
-        earth_position[0] = 0;
-        earth_position[1] = 0;
-
-    @staticmethod
-    def transform2(sun_position, earth_position):
-        sun_position[0] = -earth_position[0] / 2.;
-        sun_position[1] = -earth_position[1] / 2.;
-        earth_position[0] /= 2.;
-        earth_position[1] /= 2.;
-
-    def draw(self, transform_func = None):
-        angular = self.alpha * numpy.pi / 180.;
-        x = self.au * numpy.cos(angular);
-        y = self.au * numpy.sin(angular);
-        sun_position = [0, 0];
-        earth_position = [x, y];
-        if transform_func:
-            transform_func(sun_position, earth_position);
-        self.sun.set_center((sun_position[0], sun_position[1]));
-        self.earth.set_center((earth_position[0], earth_position[1]));
-
-    def add_to_axes(self, axes):
-        axes.add_artist(self.sun);
-        axes.add_artist(self.earth);
-
-    def shift(self, delta_degrees, transform_func = None):
-        if self.alpha is None:
-            self.alpha = 0;
+    def init_planet_internal(self, planet, *args, **kwargs):
+        shift_vec = self.calculate_shift_vec();
+        fig = pyplot.Circle(self.calculate_xy(shift_vec, planet), planet.radius, color=planet.color);
+        fig.set_zorder(10);
+        if planet.trace:
+            line = pyplot.Line2D([fig.center[0]], [fig.center[1]], color=planet.color, linewidth=1);
+            line.set_zorder(1);
+            line.stop = False;
+            args[0].add_artist(line);
         else:
-            self.alpha += delta_degrees;
-        self.alpha %= 360;
-        self.draw(transform_func);
+            line = None;
+        self.figures.append((fig, planet, line));
+        args[0].add_artist(fig);
 
-    def get_artists(self):
-        return [self.sun, self.earth];
+    # noinspection PyMethodMayBeStatic
+    def calculate_xy(self, shift_vec, planet):
+        x = self.window_shift[0] + shift_vec[0] + planet.orbit_radius * numpy.cos(planet.angular * numpy.pi / 180.);
+        y = self.window_shift[1] + shift_vec[1] + planet.orbit_radius * numpy.sin(planet.angular * numpy.pi / 180.);
+        return x, y;
+
+    def draw(self):
+        shift_vec = self.calculate_shift_vec();
+        r = [];
+        for (fig, planet, line) in self.figures:
+            x, y = self.calculate_xy(shift_vec, planet);
+            fig.set_center((x, y));
+            r.append(fig);
+            if line:
+                r.append(line);
+                if not line.stop:
+                    (xdata, ydata) = line.get_data();
+                    if len(xdata) > 3:
+                        dx1 = x - xdata[1];
+                        dy1 = y - ydata[1];
+                        dx2 = xdata[-1] - xdata[0];
+                        dy2 = ydata[-1] - ydata[0];
+                        dd = numpy.sqrt(numpy.abs(dx1 * dx2) + numpy.abs(dy1 * dy2));
+                        if dd < 0.00001:
+                            # если траектория замкнулась, то начало линии сохраняется в конец,
+                            # и дальнейшее рисование прекращается
+                            line.stop = True;
+                            xdata.pop();
+                            ydata.pop();
+                            x = xdata[0];
+                            y = ydata[0];
+                    xdata.append(x);
+                    ydata.append(y);
+                    line.set_data((xdata, ydata));
+        return r;
 
 
-def shift_solar_system(value, ss, transform_func):
-    ss.shift(10, transform_func);
+class Projection2(Projection):
+    """
+    Вид модели в системе отсчета, связанной с центром отрезка между Солнцем и Землей
+    """
+
+    def __init__(self, axes, ss, window_shift):
+        super().__init__(axes, ss, window_shift);
+
+    def calculate_shift_vec(self):
+        sun = self.ss.planets["sun"];
+        earth = self.ss.planets["earth"];
+        sun_x = sun.orbit_radius * numpy.cos(sun.angular * numpy.pi / 180.);
+        sun_y = sun.orbit_radius * numpy.sin(sun.angular * numpy.pi / 180.);
+        earth_x = earth.orbit_radius * numpy.cos(earth.angular * numpy.pi / 180.);
+        earth_y = earth.orbit_radius * numpy.sin(earth.angular * numpy.pi / 180.);
+        return [(sun_x - earth_x) / 2., (sun_y - earth_y) / 2.];
 
 
-def init_rotation():
-    return solar.get_artists();
+class Projection3(Projection):
+    """
+    Вид модели в системе отсчета, связанной с Землей
+    """
 
+    def __init__(self, axes, ss, window_shift):
+        super().__init__(axes, ss, window_shift);
+
+    def calculate_shift_vec(self):
+        sun = self.ss.planets["sun"];
+        earth = self.ss.planets["earth"];
+        sun_x = sun.orbit_radius * numpy.cos(sun.angular * numpy.pi / 180.);
+        sun_y = sun.orbit_radius * numpy.sin(sun.angular * numpy.pi / 180.);
+        earth_x = earth.orbit_radius * numpy.cos(earth.angular * numpy.pi / 180.);
+        earth_y = earth.orbit_radius * numpy.sin(earth.angular * numpy.pi / 180.);
+        return [sun_x - earth_x, sun_y - earth_y];
+
+
+def do_nothing():
+    r = [];
+    for p in [projection1, projection2, projection3]:
+        for (fig, a, b) in p.figures:
+            r.append(fig);
+    return r;
+
+
+def animate(value):
+    global number_of_steps;
+    if value == 0 or value > number_of_steps:
+        # Не двигать модель в 0-м кадре и дополнительных кадров, после последнего шага
+        return do_nothing();
+    solar.step();
+    r = [];
+    r.extend(projection1.draw());
+    r.extend(projection2.draw());
+    r.extend(projection3.draw());
+    return r;
+
+
+solar = SolarSystem();
 
 pyplot.style.use("dark_background");
 ax = pyplot.axes(label="123");
-pyplot.axis([-160, 160, -120, 120]);
+pyplot.gcf().set_figheight(6);
+pyplot.gcf().set_figwidth(12);
+pyplot.axis([0, 1000, 0, 400]);
+pyplot.gca().set_aspect("equal", adjustable=None, anchor="SW");
 pyplot.axis(False);
-pyplot.grid(True);
-figure = pyplot.gcf();
-solar = SolarSystem();
-solar.add_to_axes(ax);
-rot_animation = animation.FuncAnimation(fig = figure,
-                                        init_func = init_rotation,
-                                        func = shift_solar_system,
-                                        fargs = (solar, SolarSystem.transform2),
-                                        frames = 36,
-                                        repeat = False,
-                                        interval = 100);
+pyplot.grid(False);
 
-rot_animation.save("transform2.gif", dpi = 96, writer = matplotlib.animation.PillowWriter(96));
+projection1 = Projection(ax, solar, [135, 200]);
+projection2 = Projection2(ax, solar, [425, 200]);
+projection3 = Projection3(ax, solar, [780, 200]);
 
-pyplot.show();
+if output_to_gif:
+    # В gif выдается количество кадров, на 1 меньше количества шагов
+    # Последний шаг не нужен, поскольку он будет сделан в следующем цикле анимации
+    number_of_frames = number_of_steps - 1;
+else:
+    # В окне, почему-то на один кадр получается меньше
+    number_of_frames = number_of_steps + 1;
+
+rot_animation = animation.FuncAnimation(fig=pyplot.gcf(),
+                                        blit=False,
+                                        func=animate,
+                                        frames=number_of_frames,
+                                        repeat=False,
+                                        interval=100);
+
+if output_to_gif:
+    rot_animation.save("transform-{0:%Y-%m-%d-%H-%M-%S}.gif".format(datetime.now()),
+                       dpi=96,
+                       writer=matplotlib.animation.PillowWriter(96));
+else:
+    pyplot.show();
