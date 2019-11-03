@@ -39,13 +39,13 @@ class SolarSystem:
         # Юпитер самый медленный. Он должен за один цикл анимации сделать 1 оборот.
         # Остальные планеты движутся со скоростями пропорционально указанным коэффициентам.
         jupiter_step = 360 / number_of_steps;
-        traces = False;
-        self.add_planet(Planet("sun", 7, 0, jupiter_step * 0, "#909020", 0, traces and False));
+        traces = True;
+        self.add_planet(Planet("sun", 7, 0, jupiter_step * 0, "#909020", 0, traces));
         self.add_planet(Planet("mercury", 3, 24, jupiter_step * 24, "#404000", 0, traces));
-        # self.add_planet(Planet("venus", 4, 48, jupiter_step * 12, "#A0A0A0", 0, traces and False));
-        self.add_planet(Planet("earth", 4, 72, jupiter_step * 10, "#101080", 0, traces and False));
-        # self.add_planet(Planet("mars", 3, 96, jupiter_step * 6, "#801010", 0, traces));
-        # self.add_planet(Planet("jupiter", 5, 120, jupiter_step, "#505050", 0, traces));
+        self.add_planet(Planet("venus", 4, 48, jupiter_step * 12, "#A0A0A0", 0, traces));
+        self.add_planet(Planet("earth", 4, 72, jupiter_step * 10, "#101080", 0, traces));
+        self.add_planet(Planet("mars", 3, 96, jupiter_step * 6, "#801010", 0, traces));
+        self.add_planet(Planet("jupiter", 5, 120, jupiter_step, "#505050", 0, traces));
         self.has_traces = False;
         for planet in self.planets:
             if self.planets[planet].trace:
@@ -108,13 +108,10 @@ class Projection:
 
     def draw(self):
         shift_vec = self.calculate_shift_vec();
-        r = [];
         for (fig, planet, line) in self.figures:
             x, y = self.calculate_xy(shift_vec, planet);
             fig.set_center((x, y));
-            r.append(fig);
             if line:
-                r.append(line);
                 if not line.stop:
                     (xdata, ydata) = line.get_data();
                     if len(xdata) > 3:
@@ -134,7 +131,6 @@ class Projection:
                     xdata.append(x);
                     ydata.append(y);
                     line.set_data((xdata, ydata));
-        return r;
 
 
 class Projection2(Projection):
@@ -173,25 +169,14 @@ class Projection3(Projection):
         return [sun_x - earth_x, sun_y - earth_y];
 
 
-def do_nothing():
-    r = [];
-    for p in [projection1, projection2, projection3]:
-        for (fig, a, b) in p.figures:
-            r.append(fig);
-    return r;
-
-
 def animate(value):
-    global number_of_steps;
-    if value == 0 or value > number_of_steps:
-        # Не двигать модель в 0-м кадре и дополнительных кадров, после последнего шага
-        return do_nothing();
+    if value == 0:
+        # Не двигать модель в 0-м кадре
+        pass;
     solar.step();
-    r = [];
-    r.extend(projection1.draw());
-    r.extend(projection2.draw());
-    r.extend(projection3.draw());
-    return r;
+    projection1.draw();
+    projection2.draw();
+    projection3.draw();
 
 
 solar = SolarSystem();
