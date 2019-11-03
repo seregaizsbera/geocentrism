@@ -7,7 +7,7 @@ import numpy;
 import matplotlib.animation as animation;
 
 # выводить анимацию в файл или в окно
-output_to_gif = True;
+output_to_gif = False;
 # сколько кадров в итоговой анимации
 number_of_steps = 360;
 
@@ -172,7 +172,7 @@ class Projection3(Projection):
 def animate(value):
     if value == 0:
         # Не двигать модель в 0-м кадре
-        pass;
+        return;
     solar.step();
     projection1.draw();
     projection2.draw();
