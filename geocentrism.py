@@ -2,7 +2,7 @@
 
 from datetime import datetime;
 
-import matplotlib
+import matplotlib;
 import matplotlib.pyplot as pyplot;
 import numpy;
 import matplotlib.animation as animation;
@@ -87,13 +87,13 @@ class Projection:
         return [0, 0];
 
     @staticmethod
-    def init_planet(planet, *args, **kwargs):
+    def init_planet(planet, *args):
         a = list(args);
         projection = a.pop(0);
         args2 = tuple(a)
-        projection.init_planet_internal(planet, *args2, **kwargs);
+        projection.init_planet_internal(planet, *args2);
 
-    def init_planet_internal(self, planet, *args, **kwargs):
+    def init_planet_internal(self, planet, *args):
         shift_vec = self.calculate_shift_vec();
         fig = pyplot.Circle(self.calculate_xy(shift_vec, planet), planet.radius, color=planet.color);
         fig.set_zorder(10);
