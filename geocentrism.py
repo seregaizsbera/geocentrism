@@ -1,5 +1,6 @@
 #! /usr/bin/env python
-from datetime import datetime
+
+from datetime import datetime;
 
 import matplotlib
 import matplotlib.pyplot as pyplot;
@@ -8,8 +9,19 @@ import matplotlib.animation as animation;
 
 # выводить анимацию в файл или в окно
 output_to_gif = False;
-# сколько кадров в итоговой анимации
-number_of_steps = 360;
+# Cколько кадров в итоговой анимации. Больше кадров, лучше качество, но больше весит итоговый gif.
+number_of_steps = 720;
+# Cколько оборотов вокруг Солнца должен сделать Юпитер, самый медленный объект
+jupiter_rounds = 2;
+# Время анимации, за которое Юпитер делает 1 полный оборот вокруг Солнца
+jupiter_year_ms = 30000;
+# Угол поворота Юпитера в градусах относительно Солнца за 1 шаг (угловая скорость).
+# Скорость всех планет рассчитывается от скорости Юпитера, так как он самый медленный.
+# Он должен за один цикл анимации сделать jupiter_rounds оборотов.
+# Остальные планеты движутся со скоростями пропорционально указанным коэффициентам.
+jupiter_step = jupiter_rounds * 360 / number_of_steps;
+# задержка между кадрами
+frame_delay_ms = (jupiter_year_ms * jupiter_rounds) / number_of_steps;
 
 
 class Planet:
@@ -34,11 +46,6 @@ class SolarSystem:
     def __init__(self):
         self.planets = {};
         self.au = 100;
-        global number_of_steps;
-        # Скорость всех планет рассчитывается от скорости Юпитера
-        # Юпитер самый медленный. Он должен за один цикл анимации сделать 1 оборот.
-        # Остальные планеты движутся со скоростями пропорционально указанным коэффициентам.
-        jupiter_step = 360 / number_of_steps;
         traces = True;
         self.add_planet(Planet("sun", 7, 0, jupiter_step * 0, "#909020", 0, traces));
         self.add_planet(Planet("mercury", 3, 24, jupiter_step * 24, "#404000", 0, traces));
@@ -207,7 +214,7 @@ rot_animation = animation.FuncAnimation(fig=pyplot.gcf(),
                                         func=animate,
                                         frames=number_of_frames,
                                         repeat=False,
-                                        interval=100);
+                                        interval=frame_delay_ms);
 
 if output_to_gif:
     rot_animation.save("transform-{0:%Y-%m-%d-%H-%M-%S}.gif".format(datetime.now()),
